@@ -126,7 +126,7 @@ Este proyecto es de código abierto y está disponible bajo la licencia MIT.
 
 ## 👨‍💼 Autor
 
-- usuario
+- QuirKyLocKet-33
 
 ---
 
