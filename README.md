@@ -123,9 +123,10 @@ Las contribuciones son bienvenidas. Para cambios importantes, abre un issue prim
 
 Este proyecto es de código abierto y está disponible bajo la licencia MIT.
 
+
 ## 👨‍💼 Autor
 
-- QuirKyLocKet-33
+- usuario
 
 ---
 
