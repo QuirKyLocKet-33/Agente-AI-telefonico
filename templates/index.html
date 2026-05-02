@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CASA LAGUNA - Agente Telefónico</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ── PANTALLA COMPLETA ── */
+        .phone-screen {
+            width: 100%;
+            max-width: 380px;
+            min-height: 100vh;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 60px 24px 50px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* luces de fondo animadas */
+        .phone-screen::before {
+            content: '';
+            position: absolute;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(100,180,255,0.08) 0%, transparent 70%);
+            top: -50px; left: 50%;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        /* ── SECCIÓN SUPERIOR ── */
+        .caller-section {
+            text-align: center;
+            color: white;
+        }
+
+        .avatar {
+            width: 110px; height: 110px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            margin: 0 auto 20px;
+            box-shadow: 0 0 0 0 rgba(102,126,234,0.4);
+        }
+        .avatar.ringing {
+            animation: ring-pulse 1.2s ease-out infinite;
+        }
+        .avatar.speaking {
+            animation: speak-pulse 0.8s ease-in-out infinite;
+        }
+        @keyframes ring-pulse {
+            0%   { box-shadow: 0 0 0 0   rgba(102,126,234,0.5); }
+            70%  { box-shadow: 0 0 0 30px rgba(102,126,234,0); }
+            100% { box-shadow: 0 0 0 0   rgba(102,126,234,0); }
+        }
+        @keyframes speak-pulse {
+            0%,100% { box-shadow: 0 0 0 4px  rgba(40,167,69,0.4); }
+            50%     { box-shadow: 0 0 0 18px rgba(40,167,69,0); }
+        }
+
+        .caller-name {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .caller-sub {
+            font-size: 15px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 6px;
+        }
+        .call-timer {
+            font-size: 20px;
+            color: rgba(255,255,255,0.5);
+            margin-top: 10px;
+            font-variant-numeric: tabular-nums;
+            min-height: 28px;
+        }
+
+        /* ── ESTADO DE LA LLAMADA ── */
+        .call-status-badge {
+            margin-top: 18px;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            min-width: 180px;
+            text-align: center;
+            transition: all 0.4s;
+        }
+        .badge-idle    { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
+        .badge-ringing { background: rgba(255,200,50,0.2);  color: #ffc832; }
+        .badge-agent   { background: rgba(40,167,69,0.2);   color: #5ddf80; }
+        .badge-user    { background: rgba(220,53,69,0.25);  color: #ff6b7a; }
+        .badge-proc    { background: rgba(100,180,255,0.2); color: #64b4ff; }
+
+        /* ── TRANSCRIPCIÓN ── */
+        .transcript-area {
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 0 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .transcript-area:empty { display: none; }
+
+        .bubble {
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.4;
+            max-width: 85%;
+            color: white;
+            word-wrap: break-word;
+        }
+        .bubble.user {
+            background: rgba(0,123,255,0.45);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .bubble.agent {
+            background: rgba(255,255,255,0.12);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .bubble.pending {
+            opacity: 0.5;
+            font-style: italic;
+            animation: fade-pulse 1s ease-in-out infinite;
+        }
+        @keyframes fade-pulse {
+            0%,100% { opacity: 0.3; }
+            50%     { opacity: 0.8; }
+        }
+
+        /* ── VISUALIZADOR DE AUDIO (ondas) ── */
+        .wave-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            height: 48px;
+        }
+        .wave-bar {
+            width: 4px;
+            background: #ff6b7a;
+            border-radius: 4px;
+            animation: wave 1s ease-in-out infinite;
+        }
+        .wave-bar:nth-child(1) { animation-delay: 0s;    height: 12px; }
+        .wave-bar:nth-child(2) { animation-delay: 0.1s;  height: 24px; }
+        .wave-bar:nth-child(3) { animation-delay: 0.2s;  height: 36px; }
+        .wave-bar:nth-child(4) { animation-delay: 0.15s; height: 28px; }
+        .wave-bar:nth-child(5) { animation-delay: 0.05s; height: 16px; }
+        @keyframes wave {
+            0%,100% { transform: scaleY(0.4); }
+            50%     { transform: scaleY(1.0); }
+        }
+        .wave-container.agent .wave-bar { background: #5ddf80; }
+        .wave-container[hidden] { display: none; }
+
+        /* ── BOTONES ── */
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 36px;
+        }
+
+        .btn-call {
+            width: 74px; height: 74px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .btn-call:active { transform: scale(0.92); }
+
+        #btn-answer {
+            background: #28a745;
+            box-shadow: 0 6px 24px rgba(40,167,69,0.5);
+        }
+        #btn-answer:hover { box-shadow: 0 8px 30px rgba(40,167,69,0.7); }
+
+        #btn-hangup {
+            background: #dc3545;
+            box-shadow: 0 6px 24px rgba(220,53,69,0.5);
+        }
+        #btn-hangup:hover { box-shadow: 0 8px 30px rgba(220,53,69,0.7); }
+
+        #btn-mic {
+            background: rgba(255,255,255,0.15);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            width: 58px; height: 58px;
+            font-size: 24px;
+        }
+        #btn-mic.recording {
+            background: rgba(220,53,69,0.5);
+            box-shadow: 0 0 0 0 rgba(220,53,69,0.5);
+            animation: mic-ring 1s ease-out infinite;
+        }
+        @keyframes mic-ring {
+            0%   { box-shadow: 0 0 0 0   rgba(220,53,69,0.5); }
+            70%  { box-shadow: 0 0 0 20px rgba(220,53,69,0); }
+            100% { box-shadow: 0 0 0 0   rgba(220,53,69,0); }
+        }
+        #btn-mic:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        .hint-text {
+            color: rgba(255,255,255,0.45);
+            font-size: 13px;
+            text-align: center;
+            min-height: 18px;
+        }
+    </style>
+</head>
+<body>
+<div class="phone-screen">
+
+    <!-- SECCIÓN SUPERIOR: avatar + info -->
+    <div class="caller-section">
+        <div class="avatar" id="avatar">🏨</div>
+        <div class="caller-name">CASA LAGUNA</div>
+        <div class="caller-sub">Sofía · Reservaciones</div>
+        <div class="call-timer" id="call-timer"></div>
+        <div class="call-status-badge badge-idle" id="status-badge">Toca llamar para comenzar</div>
+    </div>
+
+    <!-- VISUALIZADOR DE ONDA -->
+    <div class="wave-container" id="wave" hidden>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+    </div>
+
+    <!-- TRANSCRIPCIÓN COMPACTA -->
+    <div class="transcript-area" id="transcript"></div>
+
+    <!-- HINT -->
+    <p class="hint-text" id="hint-text"></p>
+
+    <!-- CONTROLES -->
+    <div class="controls" id="controls">
+        <!-- Estado IDLE: solo botón de llamar -->
+        <button class="btn-call" id="btn-answer" onclick="startCall()" title="Llamar">📞</button>
+    </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  ESTADO DE LA LLAMADA
+// ═══════════════════════════════════════════════
+const STATES = { IDLE:'idle', CONNECTING:'connecting', AGENT:'agent', USER:'user', PROCESSING:'processing', ENDED:'ended' };
+let state         = STATES.IDLE;
+let mediaRecorder = null;
+let audioChunks   = [];
+let mimeType      = 'audio/webm';
+let timerInterval = null;
+let callSeconds   = 0;
+let currentAudio  = null;  // Audio element reproduciendo ahora
+
+// ── DOM ──
+const avatar       = document.getElementById('avatar');
+const statusBadge  = document.getElementById('status-badge');
+const callTimer    = document.getElementById('call-timer');
+const wave         = document.getElementById('wave');
+const transcript   = document.getElementById('transcript');
+const hintText     = document.getElementById('hint-text');
+const controls     = document.getElementById('controls');
+
+// ═══════════════════════════════════════════════
+//  MÁQUINA DE ESTADOS  →  actualiza toda la UI
+// ═══════════════════════════════════════════════
+function setState(s) {
+    state = s;
+    avatar.className = 'avatar';
+    wave.hidden = true;
+
+    if (s === STATES.IDLE) {
+        statusBadge.className = 'call-status-badge badge-idle';
+        statusBadge.textContent = 'Toca llamar para comenzar';
+        hintText.textContent = '';
+        callTimer.textContent = '';
+        renderControls('idle');
+    } else if (s === STATES.CONNECTING) {
+        avatar.classList.add('ringing');
+        statusBadge.className = 'call-status-badge badge-ringing';
+        statusBadge.textContent = '📲 Conectando…';
+        hintText.textContent = '';
+        renderControls('active');
+    } else if (s === STATES.AGENT) {
+        avatar.classList.add('speaking');
+        statusBadge.className = 'call-status-badge badge-agent';
+        statusBadge.textContent = '🔊 Sofía está hablando';
+        wave.className = 'wave-container agent';
+        wave.hidden = false;
+        hintText.textContent = 'Escucha a Sofía…';
+        renderControls('active');
+    } else if (s === STATES.USER) {
+        statusBadge.className = 'call-status-badge badge-user';
+        statusBadge.textContent = '🎤 Tu turno – habla ahora';
+        wave.className = 'wave-container';
+        wave.hidden = false;
+        hintText.textContent = 'Toca el micrófono para terminar de hablar';
+        renderControls('recording');
+    } else if (s === STATES.PROCESSING) {
+        statusBadge.className = 'call-status-badge badge-proc';
+        statusBadge.textContent = '⏳ Procesando…';
+        hintText.textContent = '';
+        renderControls('active');
+    }
+}
+
+function renderControls(mode) {
+    if (mode === 'idle') {
+        controls.innerHTML = `<button class="btn-call" id="btn-answer" onclick="startCall()" title="Llamar">📞</button>`;
+    } else if (mode === 'active') {
+        controls.innerHTML = `
+            <button class="btn-call" id="btn-hangup" onclick="endCall()" title="Colgar">📵</button>`;
+    } else if (mode === 'recording') {
+        controls.innerHTML = `
+            <button class="btn-call btn-call" id="btn-mic" onclick="stopUserTurn()" title="Terminar de hablar" style="background:rgba(220,53,69,0.5);width:74px;height:74px;font-size:30px;box-shadow:0 6px 24px rgba(220,53,69,0.5);">🎤</button>
+            <button class="btn-call" id="btn-hangup" onclick="endCall()" title="Colgar" style="width:58px;height:58px;font-size:24px;">📵</button>`;
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  TEMPORIZADOR DE LLAMADA
+// ═══════════════════════════════════════════════
+function startTimer() {
+    callSeconds = 0;
+    timerInterval = setInterval(() => {
+        callSeconds++;
+        const m = String(Math.floor(callSeconds/60)).padStart(2,'0');
+        const s = String(callSeconds % 60).padStart(2,'0');
+        callTimer.textContent = `${m}:${s}`;
+    }, 1000);
+}
+function stopTimer() {
+    clearInterval(timerInterval);
+    callTimer.textContent = '';
+}
+
+// ═══════════════════════════════════════════════
+//  INICIO DE LLAMADA
+// ═══════════════════════════════════════════════
+async function startCall() {
+    setState(STATES.CONNECTING);
+    try {
+        // Pedir permiso de micrófono y preparar recorder
+        await initMicrophone();
+
+        // Obtener saludo de Sofía (TTS desde backend)
+        const res  = await fetch('/greeting');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        startTimer();
+        addBubble(data.texto, 'agent');
+
+        // Reproducir saludo; al terminar → turno del usuario
+        setState(STATES.AGENT);
+        await playAudio(data.audio);
+
+        startUserTurn();
+    } catch (err) {
+        console.error('Error al iniciar llamada:', err);
+        addBubble('❌ No se pudo conectar: ' + err.message, 'agent');
+        setState(STATES.IDLE);
+        stopTimer();
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  FIN DE LLAMADA
+// ═══════════════════════════════════════════════
+function endCall() {
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+    stopTimer();
+    transcript.innerHTML = '';
+    setState(STATES.IDLE);
+}
+
+// ═══════════════════════════════════════════════
+//  TURNO DEL USUARIO  (auto-inicia grabación)
+// ═══════════════════════════════════════════════
+function startUserTurn() {
+    if (state === STATES.ENDED) return;
+    setState(STATES.USER);
+    audioChunks = [];
+    try {
+        mediaRecorder.start(200);
+    } catch(e) {
+        console.error('Error grabando:', e);
+    }
+}
+
+function stopUserTurn() {
+    if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
+    mediaRecorder.stop();
+    setState(STATES.PROCESSING);
+}
+
+// ═══════════════════════════════════════════════
+//  MICRÓFONO
+// ═══════════════════════════════════════════════
+async function initMicrophone() {
+    if (mediaRecorder) return;   // ya inicializado
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const preferred = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/ogg'];
+    mimeType = preferred.find(t => MediaRecorder.isTypeSupported(t)) || '';
+    mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+        if (state !== STATES.PROCESSING) return;   // llamada colgada mientras grababa
+        const blob = new Blob(audioChunks, { type: mimeType || 'audio/webm' });
+        audioChunks = [];
+        const reader = new FileReader();
+        reader.onload = () => processVoice(reader.result.split(',')[1], mimeType || 'audio/webm');
+        reader.readAsDataURL(blob);
+    };
+}
+
+// ═══════════════════════════════════════════════
+//  PROCESAR VOZ → API
+// ═══════════════════════════════════════════════
+async function processVoice(audioBase64, mime) {
+    const userBubble = addBubble('🎤 procesando…', 'user', true);
+
+    try {
+        const res  = await fetch('/voice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ audio: audioBase64, mime })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) throw new Error(data.error || 'Error desconocido');
+
+        // Actualizar burbuja del usuario con texto real
+        userBubble.classList.remove('pending');
+        userBubble.textContent = data.transcripcion;
+
+        // Mostrar respuesta del agente
+        addBubble(data.respuesta, 'agent');
+
+        // Reproducir respuesta y luego volver al turno del usuario
+        setState(STATES.AGENT);
+        await playAudio(data.audio);
+        startUserTurn();   // ciclo continuo de llamada
+
+    } catch (err) {
+        console.error('Error procesando voz:', err);
+        userBubble.classList.remove('pending');
+        userBubble.textContent = '❌ No se entendió. Intenta de nuevo.';
+        // Reintentar turno del usuario
+        if (state !== STATES.IDLE) setTimeout(startUserTurn, 1500);
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  REPRODUCIR AUDIO OPUS
+// ═══════════════════════════════════════════════
+function playAudio(audioBase64) {
+    return new Promise((resolve) => {
+        try {
+            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+            const bytes = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0));
+            const blob  = new Blob([bytes], { type: 'audio/ogg; codecs=opus' });
+            const url   = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            currentAudio = audio;
+            audio.onended = () => { URL.revokeObjectURL(url); currentAudio = null; resolve(); };
+            audio.onerror = () => { URL.revokeObjectURL(url); currentAudio = null; resolve(); };
+            audio.play().catch(() => resolve());
+        } catch(e) {
+            console.error('Error audio:', e);
+            resolve();
+        }
+    });
+}
+
+// ═══════════════════════════════════════════════
+//  BURBUJAS DE TRANSCRIPCIÓN
+// ═══════════════════════════════════════════════
+function addBubble(text, who, pending = false) {
+    const div = document.createElement('div');
+    div.className = `bubble ${who}${pending ? ' pending' : ''}`;
+    div.textContent = text;
+    transcript.appendChild(div);
+    transcript.scrollTop = transcript.scrollHeight;
+    return div;
+}
+</script>
+</body>
+</html>
